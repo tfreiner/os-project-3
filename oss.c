@@ -1,7 +1,7 @@
 /**
  * Author: Taylor Freiner
- * Date: October 7th, 2017
- * Log: Setting up semaphore
+ * Date: October 8th, 2017
+ * Log: More work on semaphore
  */
 
 #include <stdio.h>
@@ -15,6 +15,7 @@
 #include <semaphore.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
+#include <sys/wait.h>
 
 int sharedmem[3];
 
@@ -117,14 +118,12 @@ int main(int argc, char* argv[])  {
 	}
 	memcpy(&shmMsg[2], &exitId, 4);
 
-	int semVal = semctl(semid, 0, SETVAL);
+	semctl(semid, 0, SETVAL);
 
-	printf("processNum: %d\n", processNum);
 	//CREATING PROCESSES
 	for(i = 0; i < processNum; i++){
 		childpid = fork();
 		if(childpid == 0){
-			printf("CHILD PROCESS\n");
 			execl("user", "user", NULL);
 		}
 		processIds[i] = childpid;
@@ -132,12 +131,14 @@ int main(int argc, char* argv[])  {
 	}
 
 	while(clock[0] < 2 && processCount  < 100 && elapsedTime < execTime){
-
-		if(shmMsg[0] != 0 && shmMsg[1] != 0){
-			fprintf(file, "Master: Child %d is terminating at my time %d.%d because it reached %d.%d in slave\n", shmMsg[3], clock[0], clock[1], shmMsg[0], shmMsg[1]);
+		if(shmMsg[2] != -1){
+			fprintf(file, "Master: Child %d is terminating at my time %d.%d because it reached %d.%d in slave\n", shmMsg[2], clock[0], clock[1], shmMsg[0], shmMsg[1]);
 			shmMsg[0] = 0;
 			shmMsg[1] = 0;
+			shmMsg[2] = -1;
 			childpid = fork();
+			if(childpid == 0)
+				execl("user", "user", NULL);
 			processIds[processCount] = childpid;
 			processCount++;		
 		}	
@@ -151,9 +152,7 @@ int main(int argc, char* argv[])  {
 		elapsedTime = difftime(endTime, startTime);	
 	}	
 
-	printf("HERE\n");
 	fclose(file);
-
 	shmctl(memid, IPC_RMID, NULL);
 	shmctl(memid2, IPC_RMID, NULL);
 	semctl(semid, 0, IPC_RMID);
