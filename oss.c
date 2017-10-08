@@ -1,8 +1,9 @@
 /**
  * Author: Taylor Freiner
- * Date: October 5th, 2017
- * Log: Setting up shared memory, getopt, processes, and file management
+ * Date: October 7th, 2017
+ * Log: Setting up semaphore
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,9 +12,11 @@
 #include <ctype.h>
 #include <signal.h>
 #include <unistd.h>
+#include <semaphore.h>
 #include <sys/shm.h>
+#include <sys/sem.h>
 
-int sharedmem[2];
+int sharedmem[3];
 
 int main(int argc, char* argv[])  {
 
@@ -27,8 +30,6 @@ int main(int argc, char* argv[])  {
 	pid_t childpid = 0;
 	time_t startTime, endTime;
 	double elapsedTime;
-
-	
 
 	//OPTIONS
 	if (argc != 7 && argc != 3 && argc != 2){
@@ -91,15 +92,17 @@ int main(int argc, char* argv[])  {
 	//SHARED MEMORY
 	key_t key = ftok("keygen", 1);
 	key_t key2 = ftok("keygen2", 1);
+	key_t key3 = ftok("keygen3", 1);
 	int memid = shmget(key, sizeof(int*)*2, IPC_CREAT | 0644);
-	int memid2 = shmget(key2, sizeof(int*)*2, IPC_CREAT | 0644);
+	int memid2 = shmget(key2, sizeof(int*)*3, IPC_CREAT | 0644);
+	int semid = semget(key3, 1, IPC_CREAT | 0644);
 	if(memid == -1 || memid2 == -1){
 		printf("%s: ", argv[0]);
 		perror("Error\n");
 	}
 	sharedmem[0] = memid;
 	sharedmem[1] = memid2;
-	
+	sharedmem[2] = semid;
 	int *clock = (int *)shmat(memid, NULL, 0);
 	int *shmMsg = (int *)shmat(memid2, NULL, 0);
 	if(*clock == -1 || *shmMsg == -1){
@@ -107,15 +110,23 @@ int main(int argc, char* argv[])  {
 		perror("Error\n");
 	}
 	int clockVal = 0;
+	int exitId = -1;
 	for(i = 0; i < 2; i++){
 		memcpy(&clock[i], &clockVal, 4);
 		memcpy(&shmMsg[i], &clockVal, 4);
 	}
+	memcpy(&shmMsg[2], &exitId, 4);
 
+	int semVal = semctl(semid, 0, SETVAL);
+
+	printf("processNum: %d\n", processNum);
 	//CREATING PROCESSES
 	for(i = 0; i < processNum; i++){
 		childpid = fork();
-		execl("user", "user", NULL);
+		if(childpid == 0){
+			printf("CHILD PROCESS\n");
+			execl("user", "user", NULL);
+		}
 		processIds[i] = childpid;
 		processCount++;
 	}
@@ -123,7 +134,7 @@ int main(int argc, char* argv[])  {
 	while(clock[0] < 2 && processCount  < 100 && elapsedTime < execTime){
 
 		if(shmMsg[0] != 0 && shmMsg[1] != 0){
-			fprintf(file, "Master: Child pid is terminating at my time %d.%d because it reached %d.%d in slave\n", clock[0], clock[1], shmMsg[0], shmMsg[1]);
+			fprintf(file, "Master: Child %d is terminating at my time %d.%d because it reached %d.%d in slave\n", shmMsg[3], clock[0], clock[1], shmMsg[0], shmMsg[1]);
 			shmMsg[0] = 0;
 			shmMsg[1] = 0;
 			childpid = fork();
@@ -131,7 +142,7 @@ int main(int argc, char* argv[])  {
 			processCount++;		
 		}	
 		if((clock[1] + 10000000) >= 1000000000){
-			clock[1] = 0;
+			clock[1] = (clock[1] + 10000000) % 1000000000;
 			clock[0]++;	
 		}
 		else
@@ -140,10 +151,12 @@ int main(int argc, char* argv[])  {
 		elapsedTime = difftime(endTime, startTime);	
 	}	
 
+	printf("HERE\n");
 	fclose(file);
 
 	shmctl(memid, IPC_RMID, NULL);
 	shmctl(memid2, IPC_RMID, NULL);
+	semctl(semid, 0, IPC_RMID);
 
 	for(i = 0; i < processCount; i++)
 		kill(processIds[i], SIGKILL);
