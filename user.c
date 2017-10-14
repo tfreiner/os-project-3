@@ -1,7 +1,7 @@
 /**
  * Author: Taylor Freiner
  * Date: October 13th 2017
- * Log: More work on semaphore
+ * Log: Finishing semaphore
  */
 
 #include <stdio.h>
@@ -40,9 +40,6 @@ int main(int argc, char* argv[]){
 
 	int *clock = (int *)shmat(memid, NULL, 0);
 	int *shmMsg = (int *)shmat(memid2, NULL, 0);
-	//sem_t *sem = (sem_t*)shmat(semid, NULL, 0);
-	//semctl(semid, 0, IPC_STAT);
-	//semop(semid, &sb, 1);
 	if(*clock == -1 || *shmMsg == -1){
 		printf("%s: ", argv[0]);
 		perror("Error\n");
@@ -77,7 +74,6 @@ int main(int argc, char* argv[]){
 }
 
 int criticalSection(int *shmMsg, int *clock, int *localClock, int localTime){
-	printf("IN CRITICAL SECTION\n");
 	if(((clock[0] * 1000000000) + clock[1]) > localTime){
 		if(shmMsg[2] == -1){
 			shmMsg[0] = localClock[0];

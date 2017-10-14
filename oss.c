@@ -1,7 +1,7 @@
 /**
  * Author: Taylor Freiner
  * Date: October 13th, 2017
- * Log: More work on semaphore
+ * Log: Finishing semaphore 
  */
 
 #include <stdio.h>
@@ -16,12 +16,10 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <sys/wait.h>
+#include <errno.h>
+#include <sys/types.h>
 
 int sharedmem[3];
-
-union semun {
-    int val;
-};
 
 int main(int argc, char* argv[])  {
 
@@ -34,7 +32,6 @@ int main(int argc, char* argv[])  {
 	int processIds[100];
 	char argval;
 	char* filename = (char *)malloc(100);
-	pid_t childpid = 0;
 	time_t startTime, endTime;
 	double elapsedTime;
 
@@ -80,6 +77,7 @@ int main(int argc, char* argv[])  {
 				break;
 		}
 	}
+
 	if(execTime == 0)
 		execTime = 20;
 	if(processNum == 0)
@@ -123,15 +121,23 @@ int main(int argc, char* argv[])  {
 		memcpy(&shmMsg[i], &clockVal, 4);
 	}
 	memcpy(&shmMsg[2], &exitId, 4);
-
 	semctl(semid, 0, IPC_STAT, 1, arg);
+	if(errno){
+		fprintf(stderr, "%s\n", sterror(errno));
+		exit(1);
+	}
 
 	//CREATING PROCESSES
+	pid_t childpid;
 	for(i = 0; i < processNum; i++){
-		printf("PROCESS\n");
 		childpid = fork();
-		if(childpid == 0){
-			execl("user", "user", NULL);
+		
+		if(childpid == 0)
+			execl("./user", "user", NULL);
+
+		if(errno){
+			fprintf(stderr, "%s", strerror(errno));
+			exit(1);
 		}
 		processIds[i] = childpid;
 		processCount++;
@@ -158,7 +164,6 @@ int main(int argc, char* argv[])  {
 		time(&endTime);
 		elapsedTime = difftime(endTime, startTime);	
 	}	
-
 	fclose(file);
 	shmctl(memid, IPC_RMID, NULL);
 	shmctl(memid2, IPC_RMID, NULL);
