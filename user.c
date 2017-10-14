@@ -1,6 +1,6 @@
 /**
  * Author: Taylor Freiner
- * Date: October 8th 2017
+ * Date: October 13th 2017
  * Log: More work on semaphore
  */
 
@@ -12,18 +12,19 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <semaphore.h>
+#include <errno.h>
 
 int criticalSection(int *, int *, int *, int);
 
 int main(int argc, char* argv[]){
+	printf("IN USER\n");
 	srand(time(NULL));
 	rand();rand();rand();
 	struct sembuf sb;
 	sb.sem_num = 0;
-	sb.sem_op = 1;
+	sb.sem_op = -1;
 	sb.sem_flg = 0;
 	int execTime = (rand() % 999999) + 1;
-	printf("execTime: %d\n", execTime);
 	key_t key = ftok("keygen", 1);
 	key_t key2 = ftok("keygen2", 1);
 	key_t key3 = ftok("keygen3", 1);
@@ -43,7 +44,7 @@ int main(int argc, char* argv[]){
 	int *shmMsg = (int *)shmat(memid2, NULL, 0);
 	//sem_t *sem = (sem_t*)shmat(semid, NULL, 0);
 	//semctl(semid, 0, IPC_STAT);
-	semop(semid, &sb, 1);
+	//semop(semid, &sb, 1);
 	if(*clock == -1 || *shmMsg == -1){
 		printf("%s: ", argv[0]);
 		perror("Error\n");
@@ -60,12 +61,14 @@ int main(int argc, char* argv[]){
 	int localTime = localClock[0] * 1000000000 + localClock[1];
 	int status = 1;
 	do{
-		//sem_wait(sem);
-		semop(semid, &sb, 1);
+		printf("DO/WHILE LOOP\n");
+		sb.sem_op = 0;
+		semop(semid, &sb, 1);	
 		status = criticalSection(shmMsg, clock, localClock, localTime);
-		//sem_post(sem);
-		sb.sem_op = 1;
+		
+		sb.sem_op = -1;
 		semop(semid, &sb, 1);
+		printf("AFTER CRITICAL---------%d \n", status);
 		if(status == 0)
 			exit(0);
 	}
@@ -75,7 +78,9 @@ int main(int argc, char* argv[]){
 }
 
 int criticalSection(int *shmMsg, int *clock, int *localClock, int localTime){
+	printf("IN CRITICAL SECTION\n");
 	if(((clock[0] * 1000000000) + clock[1]) > localTime){
+		printf("IN IF STAT\n");
 		if(shmMsg[2] == -1){
 			shmMsg[0] = localClock[0];
 			shmMsg[1] = localClock[1];

@@ -1,6 +1,6 @@
 /**
  * Author: Taylor Freiner
- * Date: October 8th, 2017
+ * Date: October 13th, 2017
  * Log: More work on semaphore
  */
 
@@ -118,10 +118,11 @@ int main(int argc, char* argv[])  {
 	}
 	memcpy(&shmMsg[2], &exitId, 4);
 
-	semctl(semid, 0, SETVAL);
+	semctl(semid, 1, SETVAL);
 
 	//CREATING PROCESSES
 	for(i = 0; i < processNum; i++){
+		printf("PROCESS\n");
 		childpid = fork();
 		if(childpid == 0){
 			execl("user", "user", NULL);
