@@ -19,8 +19,14 @@
 
 int sharedmem[3];
 
+union semun {
+    int val;
+};
+
 int main(int argc, char* argv[])  {
 
+	union semun arg;
+	arg.val = 1;
 	int i, option;
 	int execTime = 0;
 	int processCount = 0;
@@ -118,7 +124,7 @@ int main(int argc, char* argv[])  {
 	}
 	memcpy(&shmMsg[2], &exitId, 4);
 
-	semctl(semid, 1, SETVAL);
+	semctl(semid, 0, IPC_STAT, 1, arg);
 
 	//CREATING PROCESSES
 	for(i = 0; i < processNum; i++){

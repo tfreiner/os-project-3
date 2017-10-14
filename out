@@ -1,1 +1,3 @@
-Master: Child 32726 is terminating at my time 0.2569854 because it reached 0.0 in slave
+Master: Child 2087 is terminating at my time 0.116696 because it reached 0.0 in slave
+Master: Child 2086 is terminating at my time 0.10116696 because it reached 0.116696 in slave
+Master: Child 2087 is terminating at my time 0.20116696 because it reached 0.10116696 in slave
