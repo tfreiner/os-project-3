@@ -1,7 +1,7 @@
 /**
  * Author: Taylor Freiner
- * Date: October 13th 2017
- * Log: Finishing semaphore
+ * Date: October 16th 2017
+ * Log: Wrapping up
  */
 
 #include <stdio.h>
@@ -17,12 +17,10 @@
 int criticalSection(int *, int *, int *, int);
 
 int main(int argc, char* argv[]){
-	srand(time(NULL));
-	rand();rand();rand();
 	struct sembuf sb;
-	sb.sem_num = 0;
-	sb.sem_flg = 0;
+	srand(time(NULL) ^ (getpid()<<16));
 	int execTime = (rand() % 999999) + 1;
+	printf("execTime: %d\n", execTime);
 	key_t key = ftok("keygen", 1);
 	key_t key2 = ftok("keygen2", 1);
 	key_t key3 = ftok("keygen3", 1);
@@ -45,7 +43,6 @@ int main(int argc, char* argv[]){
 		perror("Error\n");
 	}
 	printf("PID: %ld\n", (long)getpid());
-	shmMsg[2] = getpid();
 
 	int *localClock = clock;
 	if((localClock[1] + execTime) > 1000000000){
@@ -57,12 +54,14 @@ int main(int argc, char* argv[]){
 	int localTime = localClock[0] * 1000000000 + localClock[1];
 	int status = 1;
 	do{
-		sb.sem_op = 1;
+		sb.sem_op = -1;
+		sb.sem_num = 0;
+		sb.sem_flg = 0;
 		semop(semid, &sb, 1);	
 		
 		status = criticalSection(shmMsg, clock, localClock, localTime);
 		
-		sb.sem_op = -1;
+		sb.sem_op = 1;
 		semop(semid, &sb, 1);
 		
 		if(status == 0)

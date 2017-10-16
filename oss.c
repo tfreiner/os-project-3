@@ -1,7 +1,7 @@
 /**
  * Author: Taylor Freiner
- * Date: October 13th, 2017
- * Log: Finishing semaphore 
+ * Date: October 16th, 2017
+ * Log: Wrapping up
  */
 
 #include <stdio.h>
@@ -20,6 +20,10 @@
 #include <sys/types.h>
 
 int sharedmem[3];
+
+union semun {
+	int val;
+};
 
 int main(int argc, char* argv[])  {
 
@@ -121,9 +125,9 @@ int main(int argc, char* argv[])  {
 		memcpy(&shmMsg[i], &clockVal, 4);
 	}
 	memcpy(&shmMsg[2], &exitId, 4);
-	semctl(semid, 0, IPC_STAT, 1, arg);
+	semctl(semid, 0, SETVAL, 1, arg);
 	if(errno){
-		fprintf(stderr, "%s\n", sterror(errno));
+		fprintf(stderr, "%s\n", strerror(errno));
 		exit(1);
 	}
 
@@ -131,7 +135,11 @@ int main(int argc, char* argv[])  {
 	pid_t childpid;
 	for(i = 0; i < processNum; i++){
 		childpid = fork();
-		
+		if(errno){
+			fprintf(stderr, "%s", strerror(errno));
+			exit(1);
+		}	
+	
 		if(childpid == 0)
 			execl("./user", "user", NULL);
 
@@ -150,19 +158,29 @@ int main(int argc, char* argv[])  {
 			shmMsg[1] = 0;
 			shmMsg[2] = -1;
 			childpid = fork();
-			if(childpid == 0)
-				execl("user", "user", NULL);
+			if(childpid == 0){
+				execl("./user", "user", NULL);
+			}
 			processIds[processCount] = childpid;
 			processCount++;		
-		}	
-		if((clock[1] + 10000000) >= 1000000000){
-			clock[1] = (clock[1] + 10000000) % 1000000000;
+		}
+		if((clock[1] + 100000) >= 1000000000){
+			clock[1] = (clock[1] + 1000000) % 1000000000;
 			clock[0]++;	
 		}
 		else
-			clock[1] += 10000000;
+			clock[1] += 100000;
 		time(&endTime);
 		elapsedTime = difftime(endTime, startTime);	
+		
+		if(clock[0] >= 2){
+			printf("2 seconds passed of the simulated clock.\n");
+			printf("Time: %d seconds, %d nanoseconds\n.", clock[0], clock[1]);
+		}
+		if(processCount >= 100)
+			printf("100 processes have been created.\n");
+		if(elapsedTime >= execTime)
+			printf("%d seconds passed of the real clock.\n", execTime);
 	}	
 	fclose(file);
 	shmctl(memid, IPC_RMID, NULL);
