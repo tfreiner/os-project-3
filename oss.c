@@ -1,7 +1,7 @@
 /**
  * Author: Taylor Freiner
- * Date: October 16th, 2017
- * Log: Wrapping up
+ * Date: October 17th, 2017
+ * Log: Adding signal handling
  */
 
 #include <stdio.h>
@@ -20,10 +20,25 @@
 #include <sys/types.h>
 
 int sharedmem[3];
+int processCount = 0;
+int processIds[100];
 
 union semun {
 	int val;
 };
+
+void clean(int sig){
+	if(sig == 2)
+		fprintf(stderr, "Interrupt signaled. Removing shared memory and killing processes.\n");
+	int i;
+	shmctl(sharedmem[0], IPC_RMID, NULL);
+	shmctl(sharedmem[1], IPC_RMID, NULL);
+	semctl(sharedmem[2], 0, IPC_RMID);
+	for(i = 0; i < processCount; i++){
+		kill(processIds[i], SIGKILL);
+	}
+	exit(1);
+}
 
 int main(int argc, char* argv[])  {
 
@@ -31,13 +46,14 @@ int main(int argc, char* argv[])  {
 	arg.val = 1;
 	int i, option;
 	int execTime = 0;
-	int processCount = 0;
 	int processNum = 0;
-	int processIds[100];
 	char argval;
 	char* filename = (char *)malloc(100);
 	time_t startTime, endTime;
 	double elapsedTime;
+
+	//SIGNAL HANDLING
+	signal(SIGINT, clean);
 
 	//OPTIONS
 	if (argc != 7 && argc != 3 && argc != 2){
@@ -48,7 +64,7 @@ int main(int argc, char* argv[])  {
 	while ((option = getopt(argc, argv, "hs:l:t:")) != -1){
 		switch (option){
 			case 'h':
-				printf("Usage: %s [-s positive integer] <-l filename> [-t positive integer]\n", argv[0]);
+				printf("Usage: %s [-s positive integer less than 25] <-l filename> [-t positive integer]\n", argv[0]);
 				printf("\t-s: maximum number of slave processes\n");
 				printf("\t-l: name of log file\n");
 				printf("\t-t: execution time\n");
@@ -56,10 +72,10 @@ int main(int argc, char* argv[])  {
 				break;
 			case 's':
 				argval = *optarg;
-				if(isdigit(argval) && (atoi(optarg) > 0))
+				if(isdigit(argval) && (atoi(optarg) > 0) && (atoi(optarg) < 25))
 					processNum = atoi(optarg);
 				else{
-					fprintf(stderr, "%s Error: Argument must be a positive integer\n", argv[0]);
+					fprintf(stderr, "%s Error: Argument must be a positive integer less than 25\n", argv[0]);
 					return 1;
 				}
 				break;
@@ -76,7 +92,7 @@ int main(int argc, char* argv[])  {
 				}
 				break;
 			case '?':
-				printf("Usage: %s [-s positive integer] <-l filename> [-t positive integer]\n", argv[0]);
+				printf("Usage: %s [-s positive integer less than 25] <-l filename> [-t positive integer]\n", argv[0]);
 				return 1;
 				break;
 		}
@@ -150,13 +166,13 @@ int main(int argc, char* argv[])  {
 		processIds[i] = childpid;
 		processCount++;
 	}
-
 	while(clock[0] < 2 && processCount  < 100 && elapsedTime < execTime){
 		if(shmMsg[2] != -1){
 			fprintf(file, "Master: Child %d is terminating at my time %d.%d because it reached %d.%d in slave\n", shmMsg[2], clock[0], clock[1], shmMsg[0], shmMsg[1]);
 			shmMsg[0] = 0;
 			shmMsg[1] = 0;
 			shmMsg[2] = -1;
+			waitpid(shmMsg[2], NULL, 0);
 			childpid = fork();
 			if(childpid == 0){
 				execl("./user", "user", NULL);
@@ -164,12 +180,12 @@ int main(int argc, char* argv[])  {
 			processIds[processCount] = childpid;
 			processCount++;		
 		}
-		if((clock[1] + 100000) >= 1000000000){
-			clock[1] = (clock[1] + 1000000) % 1000000000;
+		if((clock[1] + 10000) >= 1000000000){
+			clock[1] = (clock[1] + 10000) % 1000000000;
 			clock[0]++;	
 		}
 		else
-			clock[1] += 100000;
+			clock[1] += 10000;
 		time(&endTime);
 		elapsedTime = difftime(endTime, startTime);	
 		

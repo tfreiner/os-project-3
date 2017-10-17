@@ -1,7 +1,7 @@
 /**
  * Author: Taylor Freiner
- * Date: October 16th 2017
- * Log: Wrapping up
+ * Date: October 17th 2017
+ * Log: Adding signal handling
  */
 
 #include <stdio.h>
@@ -20,7 +20,6 @@ int main(int argc, char* argv[]){
 	struct sembuf sb;
 	srand(time(NULL) ^ (getpid()<<16));
 	int execTime = (rand() % 999999) + 1;
-	printf("execTime: %d\n", execTime);
 	key_t key = ftok("keygen", 1);
 	key_t key2 = ftok("keygen2", 1);
 	key_t key3 = ftok("keygen3", 1);
@@ -42,7 +41,6 @@ int main(int argc, char* argv[]){
 		printf("%s: ", argv[0]);
 		perror("Error\n");
 	}
-	printf("PID: %ld\n", (long)getpid());
 
 	int *localClock = clock;
 	if((localClock[1] + execTime) > 1000000000){
