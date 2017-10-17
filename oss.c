@@ -56,8 +56,9 @@ int main(int argc, char* argv[])  {
 	signal(SIGINT, clean);
 
 	//OPTIONS
-	if (argc != 7 && argc != 3 && argc != 2){
+	if (argc != 7 && argc != 5 && argc != 3 && argc != 2){
 		fprintf(stderr, "%s Error: Incorrect number of arguments\n", argv[0]);
+		printf("Usage: %s [-s positive integer less than 25] <-l filename> [-t positive integer]\n", argv[0]);
 		return 1;
 	}
 
@@ -191,7 +192,7 @@ int main(int argc, char* argv[])  {
 		
 		if(clock[0] >= 2){
 			printf("2 seconds passed of the simulated clock.\n");
-			printf("Time: %d seconds, %d nanoseconds\n.", clock[0], clock[1]);
+			printf("Time: %d seconds, %d nanoseconds.\n", clock[0], clock[1]);
 		}
 		if(processCount >= 100)
 			printf("100 processes have been created.\n");

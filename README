@@ -1,0 +1,7 @@
+Taylor Freiner
+OS Project 3
+Repo. https://github.com/tfreiner/os-project-3
+
+To run this project, type make to create the executable 'oss' and then type 'oss' followed by the options and arguments.
+There are 4 options: -h(help), -s(processes), -t(time) and -l(filename).
+-s and -t are optional
