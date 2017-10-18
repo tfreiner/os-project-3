@@ -1,7 +1,7 @@
 /**
  * Author: Taylor Freiner
  * Date: October 17th, 2017
- * Log: Adding signal handling
+ * Log: Finished
  */
 
 #include <stdio.h>
@@ -28,8 +28,7 @@ union semun {
 };
 
 void clean(int sig){
-	if(sig == 2)
-		fprintf(stderr, "Interrupt signaled. Removing shared memory and killing processes.\n");
+	fprintf(stderr, "Interrupt signaled. Removing shared memory and killing processes.\n");
 	int i;
 	shmctl(sharedmem[0], IPC_RMID, NULL);
 	shmctl(sharedmem[1], IPC_RMID, NULL);
@@ -168,6 +167,7 @@ int main(int argc, char* argv[])  {
 		processCount++;
 	}
 	while(clock[0] < 2 && processCount  < 100 && elapsedTime < execTime){
+		//printf("In while loop.\n");
 		if(shmMsg[2] != -1){
 			fprintf(file, "Master: Child %d is terminating at my time %d.%d because it reached %d.%d in slave\n", shmMsg[2], clock[0], clock[1], shmMsg[0], shmMsg[1]);
 			shmMsg[0] = 0;
@@ -181,12 +181,12 @@ int main(int argc, char* argv[])  {
 			processIds[processCount] = childpid;
 			processCount++;		
 		}
-		if((clock[1] + 10000) >= 1000000000){
-			clock[1] = (clock[1] + 10000) % 1000000000;
+		if((clock[1] + 5000) >= 1000000000){
+			clock[1] = (clock[1] + 5000) % 1000000000;
 			clock[0]++;	
 		}
 		else
-			clock[1] += 10000;
+			clock[1] += 5000;
 		time(&endTime);
 		elapsedTime = difftime(endTime, startTime);	
 		

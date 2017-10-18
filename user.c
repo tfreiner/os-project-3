@@ -1,7 +1,7 @@
 /**
  * Author: Taylor Freiner
  * Date: October 17th 2017
- * Log: Adding signal handling
+ * Log: Finished 
  */
 
 #include <stdio.h>

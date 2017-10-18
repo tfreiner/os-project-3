@@ -5,3 +5,9 @@ Repo. https://github.com/tfreiner/os-project-3
 To run this project, type make to create the executable 'oss' and then type 'oss' followed by the options and arguments.
 There are 4 options: -h(help), -s(processes), -t(time) and -l(filename).
 -s and -t are optional
+-s has been limited to be less than 25 since the max number of processes per user is 30 and this ensures that number won't be exceeded.
+
+This program runs quickly and it is rare that it will last -t time.
+To test the -t implementation, one thing to do is change the nanosecond incrementation on lines 184, 185, and 189 in oss.c from 5000 to 1,
+uncomment line 170 in oss.c, and run the program with these commands: oss -t 1 -s 1 -l outfile.
+Then it will usually reach 1 second and stop execution.
